@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding ="utf-8"?>
+<definitions xmlns:soap="http://schemas.xmlsoap.org/wsdl/soap/"
+  xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+  xmlns:soapenc="http://schemas.xmlsoap.org/soap/encoding/"
+  xmlns:wsdl="http://schemas.xmlsoap.org/wsdl/"
+  xmlns="http://schemas.xmlsoap.org/wsdl/">
+  <!-- data type definition -->
+  <types>
+    <schema xmlns="http://www.w3.org/2000/10/XMLSchema">
+      <element name="user">
+        <complexType>
+          <all>
+            <element name="value" type="string" />
+          </all>
+        </complexType>
+      </element>
+      <element name="void">
+        <complexType>
+          <sequence></sequence>
+        </complexType>
+      </element>
+    </schema>
+  </types>
+  <!-- message definition -->
+  <message name='returns_user'>
+    <part name='user' type='xsd:user' />
+  </message>
+  <!-- request definition tanımlanıyor -->
+  <message name='users'>
+    <part name='void' type='xsd:void' />
+  </message>
+  <!-- function  definition -->
+  <portType name=''>
+    <operation name='users'>
+      <input message='tns:users' />
+      <output message='tns:returns_user' />
+    </operation>
+  </portType>
+  <!-- server info definition -->
+  <binding name='_webservices' type='tns:'>
+    <soap:binding style='rpc' transport='http://schemas.xmlsoap.org/soap/http' />
+    <operation name='users'>
+      <soap:operation soapAction='urn:xmethods-delayed-quotes#users' />
+      <input>
+        <soap:body use='encoded' namespace='urn:xmethods-delayed-quotes' encodingStyle='http://schemas.xmlsoap.org/soap/encoding/' />
+      </input>
+      <output>
+        <soap:body use='encoded' namespace='urn:xmethods-delayed-quotes' encodingStyle='http://schemas.xmlsoap.org/soap/encoding/' />
+      </output>
+    </operation>
+  </binding>
+  <!-- server info definition -->
+  <service name=''>
+    <port name='_0' binding='_webservices'>
+      <soap:address location='http://localhost/php-soap/server.php' />
+    </port>
+  </service>
+</definitions>

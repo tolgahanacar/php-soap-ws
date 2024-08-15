@@ -1,13 +1,23 @@
 <?php
 
 try {
+    // Create a new SOAP server instance with the WSDL file
     $soap_serv = new SoapServer("./api/users.wsdl");
-    function users()
+
+    // Define the function to be exposed by the SOAP service
+    function getUsers()
     {
-        return array("Tolgahan", "Acar");
+        return ["Tolgahan", "Acar"];
     }
-    $soap_serv->addFunction('users');
+
+    // Add the function to the SOAP server
+    $soap_serv->addFunction('getUsers');
+
+    // Handle incoming SOAP requests
     $soap_serv->handle();
 } catch (Exception $e) {
-    die("<b>Soap Connect Error:</b>" . " " . $e->getMessage());
+    // Output a formatted error message and terminate the script
+    die("<b>SOAP Connection Error:</b> " . htmlspecialchars($e->getMessage(), ENT_QUOTES, 'UTF-8'));
 }
+
+?>

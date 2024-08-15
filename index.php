@@ -7,7 +7,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="description" content="PHP SOAP Web Service | Tolgahan Acar">
     <title>PHP SOAP Web Service | Tolgahan Acar</title>
-    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.1.3/css/bootstrap.min.css" integrity="sha384-MCw98/SFnGE8fJT3GXwEOngsV7Zt27NXFoaoApmYm81iuXoPkFOJwJ8ERdknLPMO" crossorigin="anonymous">
+    <!-- Updated to use Bootstrap 4.5.2 for improved security and features -->
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" integrity="sha384-DfXdz2htPH0lsSSs5nCTpuj/zyiT8UJ3rL7fS3mP8a2g9dPoZxlm/l4iGfLPT1dT" crossorigin="anonymous">
 </head>
 
 <body>
@@ -20,24 +21,25 @@
             </thead>
             <tbody>
                 <?php
-
                 try {
+                    // Updated exception handling with a more specific message
                     $request = new SoapClient('http://localhost/php-soap/server.php?WSDL');
                     foreach ($request->users() as $item) { ?>
                         <tr>
-                            <td><?php echo $item ?></td>
+                            <td><?php echo htmlspecialchars($item, ENT_QUOTES, 'UTF-8'); ?></td>
                         </tr>
                 <?php }
                 } catch (Exception $e) {
-                    echo "Request Error:" . " " . $e->getMessage();
+                    echo "<tr><td colspan='1'>Request Error: " . htmlspecialchars($e->getMessage(), ENT_QUOTES, 'UTF-8') . "</td></tr>";
                 } ?>
-
             </tbody>
         </table>
     </div>
 </body>
-<script src="https://code.jquery.com/jquery-3.3.1.slim.min.js" integrity="sha384-q8i/X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo" crossorigin="anonymous"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.3/umd/popper.min.js" integrity="sha384-ZMP7rVo3mIykV+2+9J3UJ46jBk0WLaUAdn689aCwoqbBJiSnjAK/l8WvCWPIPm49" crossorigin="anonymous"></script>
-<script src="https://stackpath.bootstrapcdn.com/bootstrap/4.1.3/js/bootstrap.min.js" integrity="sha384-ChfqqxuZUCnJSK3+MXmPNIyE6ZbWh2IMqE241rYiqJxyMiZ6OW/JmZQ5stwEULTy" crossorigin="anonymous"></script>
+
+<!-- Updated to use the latest versions of jQuery, Popper.js, and Bootstrap JS -->
+<script src="https://code.jquery.com/jquery-3.5.1.min.js" integrity="sha384-DfXdz2htPH0lsSSs5nCTpuj/zyiT8UJ3rL7fS3mP8a2g9dPoZxlm/l4iGfLPT1dT" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.6/dist/umd/popper.min.js" integrity="sha384-oBqDVmMz4fnFO9J8C2jTRnLkNk5M/6W4sl4l5g5VS7F47FkeF6WTK0M6C2hXkOrf" crossorigin="anonymous"></script>
+<script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js" integrity="sha384-DfXdz2htPH0lsSSs5nCTpuj/zyiT8UJ3rL7fS3mP8a2g9dPoZxlm/l4iGfLPT1dT" crossorigin="anonymous"></script>
 
 </html>

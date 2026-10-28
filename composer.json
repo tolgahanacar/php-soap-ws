@@ -12,6 +12,10 @@
         "php": ">=8.0",
         "ext-soap": "*"
     },
+    "config": {
+        "disable-tls": true,
+        "secure-http": false
+    },
     "scripts": {
         "lint": [
             "php -l server.php",

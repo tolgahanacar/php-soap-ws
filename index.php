@@ -1,3 +1,29 @@
+<?php
+// If executed directly from command line (CLI)
+if (php_sapi_name() === 'cli') {
+    echo "========================================\n";
+    echo " PHP SOAP Web Service - CLI Runner\n";
+    echo "========================================\n\n";
+
+    require_once __DIR__ . '/server.php';
+    try {
+        if (!extension_loaded('soap')) {
+            throw new RuntimeException("The PHP 'soap' extension is not enabled in php.ini.");
+        }
+
+        echo "1. Checking direct service function...\n";
+        $users = users();
+        echo "   Result: " . implode(', ', $users) . "\n\n";
+
+        echo "2. Running automated test suite...\n";
+        require_once __DIR__ . '/tests/SoapTest.php';
+    } catch (Throwable $e) {
+        fwrite(STDERR, "Error: " . $e->getMessage() . "\n");
+        exit(1);
+    }
+    exit(0);
+}
+?>
 <!DOCTYPE html>
 <html lang="en">
 

@@ -2,20 +2,46 @@
 
 declare(strict_types=1);
 
-// CLI Runner Mode: If executed directly from terminal
+use App\UserService;
+
+require_once __DIR__ . '/server.php';
+
+/**
+ * Fallback SOAP Client for in-memory direct execution if HTTP loopback is unavailable.
+ */
+if (!class_exists('WebFallbackClient')) {
+    class WebFallbackClient extends SoapClient
+    {
+        public function __doRequest(
+            string $request,
+            string $location,
+            string $action,
+            int $version,
+            bool $oneWay = false,
+            ...$extraArgs
+        ): ?string {
+            $server = new SoapServer(__DIR__ . '/api/users.wsdl', ['cache_wsdl' => WSDL_CACHE_NONE]);
+            $server->setClass(UserService::class);
+            ob_start();
+            $server->handle($request);
+            return ob_get_clean();
+        }
+    }
+}
+
+// CLI Diagnostic Runner: If executed directly from command line
 if (php_sapi_name() === 'cli') {
     echo "========================================================\n";
     echo "       PHP SOAP Web Service - CLI Diagnostic Runner     \n";
     echo "========================================================\n\n";
 
-    require_once __DIR__ . '/server.php';
     try {
         if (!extension_loaded('soap')) {
             throw new RuntimeException("The PHP 'soap' extension is not enabled in php.ini.");
         }
 
         echo "1. Checking UserService class & direct method...\n";
-        $users = (new \App\UserService())->users();
+        $users = (new UserService())->users();
         echo "   [OK] Retrieved " . count($users) . " users: " . implode(', ', $users) . "\n\n";
 
         echo "2. Running full SOAP test suite...\n";
@@ -27,11 +53,7 @@ if (php_sapi_name() === 'cli') {
     exit(0);
 }
 
-// Browser Web Mode
-require_once __DIR__ . '/server.php';
-
-use App\UserService;
-
+// Browser Web Mode Execution
 $wsdlPath = __DIR__ . '/api/users.wsdl';
 $protocol = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
 $host = $_SERVER['HTTP_HOST'] ?? 'localhost:8000';
@@ -52,10 +74,10 @@ try {
     // Attempt HTTP SOAP call first
     try {
         $client = new SoapClient($wsdlPath, [
-            'location'   => $serverUrl,
-            'cache_wsdl' => WSDL_CACHE_NONE,
-            'exceptions' => true,
-            'trace'      => 1,
+            'location'           => $serverUrl,
+            'cache_wsdl'         => WSDL_CACHE_NONE,
+            'exceptions'         => true,
+            'trace'              => 1,
             'connection_timeout' => 2,
         ]);
 
@@ -66,16 +88,6 @@ try {
     } catch (Throwable $networkException) {
         // Fallback: If HTTP loopback is unavailable (e.g. single-threaded built-in server or local view),
         // execute SOAP roundtrip in-memory so the demo UI always renders smoothly.
-        class WebFallbackClient extends SoapClient {
-            public function __doRequest(string $request, string $location, string $action, int $version, bool $oneWay = false, ...$extraArgs): ?string {
-                $server = new SoapServer(__DIR__ . '/api/users.wsdl', ['cache_wsdl' => WSDL_CACHE_NONE]);
-                $server->setClass(UserService::class);
-                ob_start();
-                $server->handle($request);
-                return ob_get_clean();
-            }
-        }
-
         $fallbackClient = new WebFallbackClient($wsdlPath, [
             'cache_wsdl' => WSDL_CACHE_NONE,
             'exceptions' => true,

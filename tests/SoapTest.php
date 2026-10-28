@@ -2,6 +2,35 @@
 
 declare(strict_types=1);
 
+use App\UserService;
+
+require_once __DIR__ . '/../src/UserService.php';
+
+/**
+ * Mock SOAP Client for in-memory testing without an active HTTP server.
+ */
+if (!class_exists('InProcessSoapClient')) {
+    class InProcessSoapClient extends SoapClient
+    {
+        public function __doRequest(
+            string $request,
+            string $location,
+            string $action,
+            int $version,
+            bool $oneWay = false,
+            ...$extraArgs
+        ): ?string {
+            $wsdlPath = __DIR__ . '/../api/users.wsdl';
+            $server = new SoapServer($wsdlPath, ['cache_wsdl' => WSDL_CACHE_NONE]);
+            $server->setClass(UserService::class);
+
+            ob_start();
+            $server->handle($request);
+            return ob_get_clean();
+        }
+    }
+}
+
 echo "========================================================\n";
 echo "       PHP SOAP Web Service - Automated Test Suite      \n";
 echo "========================================================\n\n";
@@ -68,9 +97,6 @@ runTest("Verify WSDL defines operation 'users(): UserArray'", function () use ($
 });
 
 // 4. OOP UserService Unit Tests
-require_once __DIR__ . '/../src/UserService.php';
-use App\UserService;
-
 runTest("Verify App\\UserService::users() returns expected user names", function (): void {
     $service = new UserService();
     $users = $service->users();
@@ -101,18 +127,6 @@ runTest("Verify App\\UserService::getUserById() returns correct details", functi
 
 // 5. In-Memory SOAP Client <-> Server Roundtrip Integration Test
 runTest("Execute in-memory SOAP Client to Server roundtrip", function () use ($wsdlPath): void {
-    class InProcessSoapClient extends SoapClient {
-        public function __doRequest(string $request, string $location, string $action, int $version, bool $oneWay = false, ...$extraArgs): ?string {
-            $wsdlPath = __DIR__ . '/../api/users.wsdl';
-            $server = new SoapServer($wsdlPath, ['cache_wsdl' => WSDL_CACHE_NONE]);
-            $server->setClass(UserService::class);
-
-            ob_start();
-            $server->handle($request);
-            return ob_get_clean();
-        }
-    }
-
     $client = new InProcessSoapClient($wsdlPath, [
         'cache_wsdl' => WSDL_CACHE_NONE,
         'exceptions' => true,

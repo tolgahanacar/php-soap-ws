@@ -2,7 +2,9 @@
 
 declare(strict_types=1);
 
-// Register autoloader for App\ namespace (Composer or fallback)
+use App\UserService;
+
+// Autoloader for App\ namespace (Composer or fallback)
 if (file_exists(__DIR__ . '/vendor/autoload.php')) {
     require_once __DIR__ . '/vendor/autoload.php';
 } else {
@@ -21,10 +23,8 @@ if (file_exists(__DIR__ . '/vendor/autoload.php')) {
     });
 }
 
-use App\UserService;
-
 // 1. Serve WSDL on HTTP GET query ?wsdl or ?WSDL
-if (isset($_GET['wsdl']) || isset($_GET['WSDL']) || (isset($_SERVER['QUERY_STRING']) && stripos($_SERVER['QUERY_STRING'], 'wsdl') !== false)) {
+if (isset($_GET['wsdl']) || isset($_GET['WSDL']) || (isset($_SERVER['QUERY_STRING']) && stripos((string)$_SERVER['QUERY_STRING'], 'wsdl') !== false)) {
     $wsdlPath = __DIR__ . '/api/users.wsdl';
     if (file_exists($wsdlPath)) {
         header('Content-Type: text/xml; charset=utf-8');
@@ -56,15 +56,15 @@ if (!function_exists('getUsers')) {
 if (php_sapi_name() !== 'cli' && ($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'GET' && empty($_GET)) {
     header('Content-Type: application/json; charset=utf-8');
     echo json_encode([
-        'service'   => 'PHP SOAP Web Service',
-        'status'    => 'online',
-        'version'   => '2.0.0',
-        'wsdl_url'  => 'server.php?wsdl',
+        'service'    => 'PHP SOAP Web Service',
+        'status'     => 'online',
+        'version'    => '2.0.0',
+        'wsdl_url'   => 'server.php?wsdl',
         'operations' => [
             'users'    => 'Returns string[] list of user names',
             'getUsers' => 'Alias for users()',
         ],
-        'timestamp' => date('c'),
+        'timestamp'  => date('c'),
     ], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
     exit;
 }

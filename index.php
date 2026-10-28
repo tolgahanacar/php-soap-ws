@@ -6,29 +6,6 @@ use App\UserService;
 
 require_once __DIR__ . '/server.php';
 
-/**
- * Fallback SOAP Client for in-memory direct execution if HTTP loopback is unavailable.
- */
-if (!class_exists('WebFallbackClient')) {
-    class WebFallbackClient extends SoapClient
-    {
-        public function __doRequest(
-            string $request,
-            string $location,
-            string $action,
-            int $version,
-            bool $oneWay = false,
-            ...$extraArgs
-        ): ?string {
-            $server = new SoapServer(__DIR__ . '/api/users.wsdl', ['cache_wsdl' => WSDL_CACHE_NONE]);
-            $server->setClass(UserService::class);
-            ob_start();
-            $server->handle($request);
-            return ob_get_clean();
-        }
-    }
-}
-
 // CLI Diagnostic Runner: If executed directly from command line
 if (php_sapi_name() === 'cli') {
     echo "========================================================\n";
@@ -63,7 +40,7 @@ $serverUrl = $protocol . '://' . $host . ($scriptDir !== '' ? $scriptDir : '') .
 $users = [];
 $requestXml = '';
 $responseXml = '';
-$connectionMode = 'HTTP';
+$connectionMode = 'HTTP Network';
 $errorMessage = null;
 
 try {
@@ -87,17 +64,24 @@ try {
         $connectionMode = 'HTTP Network (' . $serverUrl . ')';
     } catch (Throwable $networkException) {
         // Fallback: If HTTP loopback is unavailable (e.g. single-threaded built-in server or local view),
-        // execute SOAP roundtrip in-memory so the demo UI always renders smoothly.
-        $fallbackClient = new WebFallbackClient($wsdlPath, [
-            'cache_wsdl' => WSDL_CACHE_NONE,
-            'exceptions' => true,
-            'trace'      => 1,
-        ]);
+        // execute SOAP roundtrip directly on SoapServer without needing an HTTP roundtrip.
+        $sampleRequestXml = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n" .
+            "<SOAP-ENV:Envelope xmlns:SOAP-ENV=\"http://schemas.xmlsoap.org/soap/envelope/\" xmlns:ns1=\"urn:users\">\n" .
+            "  <SOAP-ENV:Body>\n" .
+            "    <ns1:users/>\n" .
+            "  </SOAP-ENV:Body>\n" .
+            "</SOAP-ENV:Envelope>";
 
-        $users = $fallbackClient->users();
-        $requestXml = (string)$fallbackClient->__getLastRequest();
-        $responseXml = (string)$fallbackClient->__getLastResponse();
-        $connectionMode = 'In-Memory SOAP Engine (Direct Dispatch)';
+        $server = new SoapServer($wsdlPath, ['cache_wsdl' => WSDL_CACHE_NONE]);
+        $server->setClass(UserService::class);
+
+        ob_start();
+        $server->handle($sampleRequestXml);
+        $responseXml = (string)ob_get_clean();
+
+        $requestXml = $sampleRequestXml;
+        $users = (new UserService())->users();
+        $connectionMode = 'In-Memory Direct SOAP Dispatch';
     }
 } catch (Throwable $e) {
     $errorMessage = $e->getMessage();

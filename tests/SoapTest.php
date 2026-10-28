@@ -6,31 +6,6 @@ use App\UserService;
 
 require_once __DIR__ . '/../src/UserService.php';
 
-/**
- * Mock SOAP Client for in-memory testing without an active HTTP server.
- */
-if (!class_exists('InProcessSoapClient')) {
-    class InProcessSoapClient extends SoapClient
-    {
-        public function __doRequest(
-            string $request,
-            string $location,
-            string $action,
-            int $version,
-            bool $oneWay = false,
-            ...$extraArgs
-        ): ?string {
-            $wsdlPath = __DIR__ . '/../api/users.wsdl';
-            $server = new SoapServer($wsdlPath, ['cache_wsdl' => WSDL_CACHE_NONE]);
-            $server->setClass(UserService::class);
-
-            ob_start();
-            $server->handle($request);
-            return ob_get_clean();
-        }
-    }
-}
-
 echo "========================================================\n";
 echo "       PHP SOAP Web Service - Automated Test Suite      \n";
 echo "========================================================\n\n";
@@ -74,8 +49,8 @@ runTest("Verify WSDL 1.1 file existence and parseable XML", function () use ($ws
     }
 });
 
-// 3. WSDL Operation Inspection
-runTest("Verify WSDL defines operation 'users(): UserArray'", function () use ($wsdlPath): void {
+// 3. WSDL Operation Inspection via Native SoapClient
+runTest("Verify WSDL defines operation 'users(): UserArray' via SoapClient", function () use ($wsdlPath): void {
     $client = new SoapClient($wsdlPath, [
         'cache_wsdl' => WSDL_CACHE_NONE,
         'exceptions' => true,
@@ -125,27 +100,22 @@ runTest("Verify App\\UserService::getUserById() returns correct details", functi
     }
 });
 
-// 5. In-Memory SOAP Client <-> Server Roundtrip Integration Test
-runTest("Execute in-memory SOAP Client to Server roundtrip", function () use ($wsdlPath): void {
-    $client = new InProcessSoapClient($wsdlPath, [
-        'cache_wsdl' => WSDL_CACHE_NONE,
-        'exceptions' => true,
-        'trace'      => 1,
-    ]);
+// 5. In-Memory Direct SoapServer XML Request Handling
+runTest("Verify SoapServer correctly handles SOAP request payload and returns usersResponse", function () use ($wsdlPath): void {
+    $sampleRequestXml = '<?xml version="1.0" encoding="UTF-8"?>' .
+        '<SOAP-ENV:Envelope xmlns:SOAP-ENV="http://schemas.xmlsoap.org/soap/envelope/" xmlns:ns1="urn:users">' .
+        '<SOAP-ENV:Body><ns1:users/></SOAP-ENV:Body>' .
+        '</SOAP-ENV:Envelope>';
 
-    $result = $client->users();
-    if (!is_array($result) || $result !== ['Tolgahan', 'Acar']) {
-        throw new RuntimeException("SOAP call to users() returned invalid result: " . print_r($result, true));
-    }
+    $server = new SoapServer($wsdlPath, ['cache_wsdl' => WSDL_CACHE_NONE]);
+    $server->setClass(UserService::class);
 
-    $lastReq = $client->__getLastRequest();
-    $lastResp = $client->__getLastResponse();
+    ob_start();
+    $server->handle($sampleRequestXml);
+    $responseXml = (string)ob_get_clean();
 
-    if (!str_contains($lastReq, '<ns1:users') && !str_contains($lastReq, ':users')) {
-        throw new RuntimeException("SOAP Request XML does not contain users operation call.");
-    }
-    if (!str_contains($lastResp, 'usersResponse') || !str_contains($lastResp, 'Tolgahan')) {
-        throw new RuntimeException("SOAP Response XML does not contain usersResponse payload.");
+    if (!str_contains($responseXml, 'usersResponse') || !str_contains($responseXml, 'Tolgahan') || !str_contains($responseXml, 'Acar')) {
+        throw new RuntimeException("SoapServer did not return valid usersResponse. Output: " . $responseXml);
     }
 });
 

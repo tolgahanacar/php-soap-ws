@@ -3,40 +3,36 @@
              xmlns:xsd="http://www.w3.org/2001/XMLSchema"
              xmlns:soapenc="http://schemas.xmlsoap.org/soap/encoding/"
              xmlns:wsdl="http://schemas.xmlsoap.org/wsdl/"
+             xmlns:tns="urn:users"
+             targetNamespace="urn:users"
              xmlns="http://schemas.xmlsoap.org/wsdl/">
 
-  <!-- Data type definitions -->
+  <!-- Type definitions -->
   <types>
-    <schema xmlns="http://www.w3.org/2001/XMLSchema">
-      <element name="user">
-        <complexType>
-          <sequence>
-            <element name="value" type="xsd:string"/>
-          </sequence>
-        </complexType>
-      </element>
-      <element name="void">
-        <complexType>
-          <sequence/>
-        </complexType>
-      </element>
-    </schema>
+    <xsd:schema targetNamespace="urn:users">
+      <xsd:import namespace="http://schemas.xmlsoap.org/soap/encoding/"/>
+      <xsd:complexType name="UserArray">
+        <xsd:complexContent>
+          <xsd:restriction base="soapenc:Array">
+            <xsd:attribute ref="soapenc:arrayType" wsdl:arrayType="xsd:string[]"/>
+          </xsd:restriction>
+        </xsd:complexContent>
+      </xsd:complexType>
+    </xsd:schema>
   </types>
 
   <!-- Message definitions -->
-  <message name="returns_user">
-    <part name="user" type="xsd:user"/>
-  </message>
+  <message name="usersRequest"/>
 
-  <message name="users">
-    <part name="void" type="xsd:void"/>
+  <message name="usersResponse">
+    <part name="return" type="tns:UserArray"/>
   </message>
 
   <!-- PortType definitions -->
   <portType name="UserPortType">
     <operation name="users">
-      <input message="tns:users"/>
-      <output message="tns:returns_user"/>
+      <input message="tns:usersRequest"/>
+      <output message="tns:usersResponse"/>
     </operation>
   </portType>
 
@@ -44,12 +40,12 @@
   <binding name="UserBinding" type="tns:UserPortType">
     <soap:binding style="rpc" transport="http://schemas.xmlsoap.org/soap/http"/>
     <operation name="users">
-      <soap:operation soapAction="urn:xmethods-delayed-quotes#users"/>
+      <soap:operation soapAction="urn:users#users"/>
       <input>
-        <soap:body use="encoded" namespace="urn:xmethods-delayed-quotes" encodingStyle="http://schemas.xmlsoap.org/soap/encoding/"/>
+        <soap:body use="encoded" namespace="urn:users" encodingStyle="http://schemas.xmlsoap.org/soap/encoding/"/>
       </input>
       <output>
-        <soap:body use="encoded" namespace="urn:xmethods-delayed-quotes" encodingStyle="http://schemas.xmlsoap.org/soap/encoding/"/>
+        <soap:body use="encoded" namespace="urn:users" encodingStyle="http://schemas.xmlsoap.org/soap/encoding/"/>
       </output>
     </operation>
   </binding>
@@ -57,7 +53,7 @@
   <!-- Service definitions -->
   <service name="UserService">
     <port name="UserPort" binding="tns:UserBinding">
-      <soap:address location="http://localhost/php-soap/server.php"/>
+      <soap:address location="http://localhost:8000/server.php"/>
     </port>
   </service>
 

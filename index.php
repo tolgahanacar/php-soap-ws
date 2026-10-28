@@ -3,43 +3,92 @@
 
 <head>
     <meta charset="UTF-8">
-    <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="PHP SOAP Web Service | Tolgahan Acar">
+    <meta name="description" content="PHP SOAP Web Service Demo | Tolgahan Acar">
     <title>PHP SOAP Web Service | Tolgahan Acar</title>
-    <!-- Updated to use Bootstrap 4.5.2 for improved security and features -->
-    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" integrity="sha384-DfXdz2htPH0lsSSs5nCTpuj/zyiT8UJ3rL7fS3mP8a2g9dPoZxlm/l4iGfLPT1dT" crossorigin="anonymous">
+    <!-- Bootstrap 5.3 CSS -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
 </head>
 
-<body>
+<body class="bg-light py-5">
     <div class="container">
-        <table class="table table-striped table-dark">
-            <thead>
-                <tr>
-                    <th scope="col">User</th>
-                </tr>
-            </thead>
-            <tbody>
-                <?php
-                try {
-                    // Updated exception handling with a more specific message
-                    $request = new SoapClient('http://localhost/php-soap/server.php?WSDL');
-                    foreach ($request->users() as $item) { ?>
-                        <tr>
-                            <td><?php echo htmlspecialchars($item, ENT_QUOTES, 'UTF-8'); ?></td>
-                        </tr>
-                <?php }
-                } catch (Exception $e) {
-                    echo "<tr><td colspan='1'>Request Error: " . htmlspecialchars($e->getMessage(), ENT_QUOTES, 'UTF-8') . "</td></tr>";
-                } ?>
-            </tbody>
-        </table>
-    </div>
-</body>
+        <div class="row justify-content-center">
+            <div class="col-md-8">
+                <div class="card shadow-sm border-0">
+                    <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">PHP SOAP Web Service Demo</h5>
+                        <span class="badge bg-primary">SOAP 1.1 / WSDL</span>
+                    </div>
+                    <div class="card-body">
+                        <table class="table table-hover table-striped align-middle">
+                            <thead class="table-dark">
+                                <tr>
+                                    <th scope="col" style="width: 80px;">#</th>
+                                    <th scope="col">User Name</th>
+                                    <th scope="col" class="text-end">Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <?php
+                                $wsdlPath = __DIR__ . '/api/users.wsdl';
+                                $protocol = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
+                                $host = $_SERVER['HTTP_HOST'] ?? 'localhost:8000';
+                                $scriptDir = rtrim(dirname($_SERVER['SCRIPT_NAME'] ?? ''), '/\\');
+                                $serverUrl = $protocol . '://' . $host . ($scriptDir !== '' ? $scriptDir : '') . '/server.php';
 
-<!-- Updated to use the latest versions of jQuery, Popper.js, and Bootstrap JS -->
-<script src="https://code.jquery.com/jquery-3.5.1.min.js" integrity="sha384-DfXdz2htPH0lsSSs5nCTpuj/zyiT8UJ3rL7fS3mP8a2g9dPoZxlm/l4iGfLPT1dT" crossorigin="anonymous"></script>
-<script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.6/dist/umd/popper.min.js" integrity="sha384-oBqDVmMz4fnFO9J8C2jTRnLkNk5M/6W4sl4l5g5VS7F47FkeF6WTK0M6C2hXkOrf" crossorigin="anonymous"></script>
-<script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js" integrity="sha384-DfXdz2htPH0lsSSs5nCTpuj/zyiT8UJ3rL7fS3mP8a2g9dPoZxlm/l4iGfLPT1dT" crossorigin="anonymous"></script>
+                                try {
+                                    if (!extension_loaded('soap')) {
+                                        throw new RuntimeException("The PHP 'soap' extension is not enabled. Please enable it in your php.ini file.");
+                                    }
+
+                                    // Initialize SoapClient using local WSDL with dynamic server location
+                                    $client = new SoapClient($wsdlPath, [
+                                        'location'   => $serverUrl,
+                                        'cache_wsdl' => WSDL_CACHE_NONE,
+                                        'exceptions' => true,
+                                        'trace'      => 1,
+                                    ]);
+
+                                    $users = $client->users();
+                                    $index = 1;
+
+                                    if (!empty($users) && is_iterable($users)) {
+                                        foreach ($users as $item) { ?>
+                                            <tr>
+                                                <th scope="row"><?php echo $index++; ?></th>
+                                                <td><strong><?php echo htmlspecialchars((string)$item, ENT_QUOTES, 'UTF-8'); ?></strong></td>
+                                                <td class="text-end"><span class="badge bg-success">Active</span></td>
+                                            </tr>
+                                        <?php }
+                                    } else { ?>
+                                        <tr>
+                                            <td colspan="3" class="text-center text-muted">No users found.</td>
+                                        </tr>
+                                    <?php }
+                                } catch (Throwable $e) { ?>
+                                    <tr>
+                                        <td colspan="3">
+                                            <div class="alert alert-danger mb-0" role="alert">
+                                                <h6 class="alert-heading fw-bold mb-1">SOAP Request Error</h6>
+                                                <p class="mb-0 small"><?php echo htmlspecialchars($e->getMessage(), ENT_QUOTES, 'UTF-8'); ?></p>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                <?php } ?>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="card-footer text-muted small d-flex justify-content-between">
+                        <span>WSDL: <code>api/users.wsdl</code></span>
+                        <span>Endpoint: <code>server.php</code></span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap 5.3 Bundle JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
 
 </html>

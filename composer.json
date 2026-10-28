@@ -1,0 +1,26 @@
+{
+    "name": "tolgahanacar/php-soap-ws",
+    "description": "A simple PHP SOAP Web Service demonstration using SoapServer, SoapClient and WSDL.",
+    "type": "project",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Tolgahan Acar"
+        }
+    ],
+    "require": {
+        "php": ">=8.0",
+        "ext-soap": "*"
+    },
+    "scripts": {
+        "lint": [
+            "php -l server.php",
+            "php -l index.php",
+            "php -l tests/SoapTest.php"
+        ],
+        "test": [
+            "@lint",
+            "php tests/SoapTest.php"
+        ]
+    }
+}

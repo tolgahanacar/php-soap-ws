@@ -1,6 +1,6 @@
 {
     "name": "tolgahanacar/php-soap-ws",
-    "description": "A simple PHP SOAP Web Service demonstration using SoapServer, SoapClient and WSDL.",
+    "description": "A modern OOP PHP SOAP Web Service demonstration using SoapServer, SoapClient and WSDL.",
     "type": "project",
     "license": "MIT",
     "authors": [
@@ -12,6 +12,11 @@
         "php": ">=8.0",
         "ext-soap": "*"
     },
+    "autoload": {
+        "psr-4": {
+            "App\\": "src/"
+        }
+    },
     "config": {
         "disable-tls": true,
         "secure-http": false
@@ -20,11 +25,13 @@
         "lint": [
             "php -l server.php",
             "php -l index.php",
+            "php -l src/UserService.php",
             "php -l tests/SoapTest.php"
         ],
         "test": [
             "@lint",
             "php tests/SoapTest.php"
-        ]
+        ],
+        "serve": "php -S localhost:8000"
     }
 }

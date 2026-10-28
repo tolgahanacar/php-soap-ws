@@ -4,17 +4,23 @@
 [![PHP Version](https://img.shields.io/badge/PHP-%3E%3D8.0-blue.svg)](https://www.php.net/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-A clean and modern demonstration of a SOAP Web Service implemented using PHP's native `ext-soap` extension (`SoapServer` and `SoapClient`) along with a valid WSDL (Web Services Description Language 1.1) contract.
+A modern, object-oriented (OOP) demonstration of a SOAP Web Service implemented using PHP's native `ext-soap` extension (`SoapServer` and `SoapClient`), featuring a valid WSDL 1.1 contract, a live XML envelope inspector, and an automated CLI test suite.
 
 ---
 
-## Features
+## Architecture & Features
 
-- **SOAP Server (`server.php`)**: A PHP SOAP server implementing the RPC/encoded service defined by the WSDL contract. Exposes the `users()` operation and handles both SOAP POST requests and HTTP GET `?wsdl` schema requests.
-- **WSDL Definition (`api/users.wsdl`)**: Fully compliant WSDL 1.1 definition with proper XML Schema types (`UserArray`), target namespaces (`urn:users`), and port bindings.
-- **SOAP Client & Web UI (`index.php`)**: Consumes the SOAP service dynamically and presents the retrieved user dataset in a responsive Bootstrap 5 interface.
-- **Automated Test Suite (`tests/SoapTest.php`)**: In-memory end-to-end integration test validating WSDL parsing, server function registration, and full client-server SOAP envelope roundtrips.
-- **CI/CD Pipeline (`.github/workflows/php.yml`)**: GitHub Actions workflow testing matrix compatibility across PHP 8.1, 8.2, and 8.3 with strict Composer validation.
+- **OOP Architecture (`src/UserService.php`)**: Clean service layer encapsulating business logic, bound directly to `SoapServer::setClass(UserService::class)`.
+- **WSDL 1.1 Contract (`api/users.wsdl`)**: Strict RPC/encoded schema defining the `UserArray` complex type and `users()` operation under the `urn:users` target namespace.
+- **SOAP Server Endpoint (`server.php`)**:
+  - Handles incoming SOAP XML POST payloads.
+  - Serves raw WSDL over HTTP GET via `server.php?wsdl`.
+  - Returns service status information in JSON on direct browser GET requests.
+- **Dual-Mode Client & UI (`index.php`)**:
+  - **Browser Mode**: Interactive Bootstrap 5.3 dashboard with live User Directory, real-time SOAP XML Request/Response Inspector (capturing actual `<SOAP-ENV:Envelope>` XML), and WSDL contract inspector.
+  - **CLI Mode**: Automatically detects command-line execution (`php index.php`) and runs instant diagnostics and test suites directly in your terminal.
+- **Automated CLI Test Runner (`tests/SoapTest.php`)**: 7 comprehensive assertions validating WSDL parsing, method signatures, in-memory SOAP serialization, and roundtrip envelope execution.
+- **GitHub Actions CI (`.github/workflows/php.yml`)**: Continuous integration matrix across PHP 8.1, 8.2, and 8.3 with step summaries and manual dispatch support.
 
 ---
 
@@ -24,15 +30,17 @@ A clean and modern demonstration of a SOAP Web Service implemented using PHP's n
 php-soap-ws/
 ├── .github/
 │   └── workflows/
-│       └── php.yml          # GitHub Actions CI workflow (PHP 8.1, 8.2, 8.3)
+│       └── php.yml          # GitHub Actions CI workflow (Matrix 8.1, 8.2, 8.3)
 ├── api/
 │   └── users.wsdl           # WSDL 1.1 SOAP service specification
+├── src/
+│   └── UserService.php      # OOP business logic & SOAP handler class
 ├── tests/
-│   └── SoapTest.php         # Automated CLI/In-Memory test suite
-├── composer.json            # Project definition, requirements & scripts
-├── index.php                # SOAP Client & Bootstrap 5 presentation interface
-├── server.php               # SOAP Server endpoint with ?wsdl support
-└── README.md                # Project documentation
+│   └── SoapTest.php         # Automated 7-step test suite
+├── composer.json            # PSR-4 autoloading, lint & test scripts
+├── index.php                # Dual-mode SOAP Client, UI & XML inspector
+├── server.php               # SOAP Server endpoint with ?wsdl and JSON info
+└── README.md                # Comprehensive documentation
 ```
 
 ---
@@ -42,85 +50,94 @@ php-soap-ws/
 - **PHP**: `8.0` or higher
 - **Extensions**:
   - `ext-soap` (Must be enabled in `php.ini`)
-- **Composer**: `2.x` (Recommended for dependency management and script execution)
+  - `ext-simplexml` (Enabled by default in standard PHP)
+- **Composer**: `2.x` (Recommended)
 
-> [!NOTE]
-> Make sure `extension=soap` is uncommented/enabled in your `php.ini` file. You can verify it by running:
+> [!TIP]
+> Ensure `extension=soap` is uncommented in your `php.ini`. Verify via CLI:
 > ```bash
 > php -m | grep soap
 > ```
 
 ---
 
-## Getting Started
+## Quick Start & Testing
 
-### 1. Clone the Repository
+### 1. Clone & Validate
 
 ```bash
 git clone https://github.com/tolgahanacar/php-soap-ws.git
 cd php-soap-ws
 ```
 
-### 2. Validate with Composer
+### 2. Run CLI Tests
+
+You can execute the automated test suite via Composer or standard PHP:
 
 ```bash
-composer validate --strict
-composer install
-```
-
-### 3. Run the Automated Tests
-
-Run the syntax linting and SOAP roundtrip integration tests:
-
-```bash
+# Using Composer
 composer test
-```
-Or directly using PHP:
-```bash
+
+# Or using PHP directly
+php index.php
+# Or
 php tests/SoapTest.php
+```
+
+**Expected Test Output:**
+```text
+========================================================
+       PHP SOAP Web Service - Automated Test Suite      
+========================================================
+
+  [PASS] Verify PHP 'soap' extension is enabled
+  [PASS] Verify WSDL 1.1 file existence and parseable XML
+  [PASS] Verify WSDL defines operation 'users(): UserArray'
+  [PASS] Verify App\UserService::users() returns expected user names
+  [PASS] Verify App\UserService::getUsers() backward-compatible alias
+  [PASS] Verify App\UserService::getUserById() returns correct details
+  [PASS] Execute in-memory SOAP Client to Server roundtrip
+
+--------------------------------------------------------
+Test Execution Summary: 7 / 7 passed (100%)
+--------------------------------------------------------
+Result: ALL CLI TESTS PASSED!
 ```
 
 ---
 
-## Running the Web Service
+## Running the Web Interface
 
-### Option A: Using PHP Built-in Server
-
-Run the development server in the project root:
+### Option A: PHP Built-in Server
 
 ```bash
 php -S localhost:8000
 ```
+Open your browser:
+- **Web Dashboard & XML Inspector**: [http://localhost:8000/index.php](http://localhost:8000/index.php)
+- **Raw WSDL**: [http://localhost:8000/server.php?wsdl](http://localhost:8000/server.php?wsdl)
+- **Service Endpoint**: `http://localhost:8000/server.php`
 
-Now open your browser:
-- **Client UI**: [http://localhost:8000/index.php](http://localhost:8000/index.php)
-- **WSDL Definition**: [http://localhost:8000/server.php?wsdl](http://localhost:8000/server.php?wsdl)
-- **SOAP Endpoint**: `http://localhost:8000/server.php`
+### Option B: Apache / XAMPP / MAMP
 
-### Option B: Using Apache / XAMPP / MAMP / WampServer
-
-Place the `php-soap-ws` folder inside your web server document root (e.g. `htdocs` or `www`), and navigate to:
+Clone or copy into your web server directory (`htdocs` / `www`), then browse to:
 ```
 http://localhost/php-soap-ws/
 ```
 
 ---
 
-## SOAP API Specification
+## GitHub Actions CI Troubleshooting
 
-### Endpoint
-- **URL**: `server.php`
-- **WSDL URL**: `server.php?wsdl`
-- **Protocol**: SOAP 1.1
-- **Style / Use**: `rpc` / `encoded`
-- **Target Namespace**: `urn:users`
+If your GitHub Actions tab shows a red cross with the message:
+> `The job was not started because your account is locked due to a billing issue.`
 
-### Exposed Operations
+This occurs when GitHub places an account-level lock on Actions runner minutes (such as an expired payment card, unverified card, or reached spending limit).
 
-| Operation | Parameters | Return Type | Description |
-|-----------|------------|-------------|-------------|
-| `users()` | *None* | `string[]` (`UserArray`) | Returns an array of user names (`["Tolgahan", "Acar"]`). |
-| `getUsers()` | *None* | `string[]` (`UserArray`) | Backward-compatible alias for `users()`. |
+To resolve:
+1. Go to **GitHub Settings -> Billing and plans -> Spending limit**.
+2. Verify that GitHub Actions is enabled and payment details are active.
+3. Once unlocked, click **Actions -> PHP CI -> Run workflow** to run the workflow on demand.
 
 ---
 

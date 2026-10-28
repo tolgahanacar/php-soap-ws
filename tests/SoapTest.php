@@ -1,33 +1,60 @@
 <?php
 
-echo "Testing PHP SOAP Web Service...\n";
+declare(strict_types=1);
 
-// 1. Check SOAP extension
-if (!extension_loaded('soap')) {
-    fwrite(STDERR, "FAIL: PHP 'soap' extension is not loaded\n");
-    exit(1);
+echo "========================================================\n";
+echo "       PHP SOAP Web Service - Automated Test Suite      \n";
+echo "========================================================\n\n";
+
+$testsTotal = 0;
+$testsPassed = 0;
+
+/**
+ * Helper to run a test assertion
+ */
+function runTest(string $description, callable $testFn): void
+{
+    global $testsTotal, $testsPassed;
+    $testsTotal++;
+    try {
+        $testFn();
+        $testsPassed++;
+        echo "  [PASS] {$description}\n";
+    } catch (Throwable $e) {
+        echo "  [FAIL] {$description}\n";
+        fwrite(STDERR, "         Error: " . $e->getMessage() . "\n");
+    }
 }
-echo "✓ PHP 'soap' extension is enabled\n";
 
-// 2. Validate WSDL file structure and operations
+// 1. PHP Extension Check
+runTest("Verify PHP 'soap' extension is enabled", function (): void {
+    if (!extension_loaded('soap')) {
+        throw new RuntimeException("The PHP 'soap' extension is not enabled in php.ini.");
+    }
+});
+
+// 2. WSDL File Existence and Syntax
 $wsdlPath = __DIR__ . '/../api/users.wsdl';
-if (!file_exists($wsdlPath)) {
-    fwrite(STDERR, "FAIL: WSDL file not found at: {$wsdlPath}\n");
-    exit(1);
-}
+runTest("Verify WSDL 1.1 file existence and parseable XML", function () use ($wsdlPath): void {
+    if (!file_exists($wsdlPath)) {
+        throw new RuntimeException("WSDL file not found at: {$wsdlPath}");
+    }
+    $xml = simplexml_load_file($wsdlPath);
+    if ($xml === false) {
+        throw new RuntimeException("WSDL file contains invalid XML syntax.");
+    }
+});
 
-try {
+// 3. WSDL Operation Inspection
+runTest("Verify WSDL defines operation 'users(): UserArray'", function () use ($wsdlPath): void {
     $client = new SoapClient($wsdlPath, [
         'cache_wsdl' => WSDL_CACHE_NONE,
         'exceptions' => true,
     ]);
-
     $functions = $client->__getFunctions();
     if (!is_array($functions) || empty($functions)) {
-        fwrite(STDERR, "FAIL: No functions found in WSDL\n");
-        exit(1);
+        throw new RuntimeException("No functions found in WSDL contract.");
     }
-
     $found = false;
     foreach ($functions as $fn) {
         if (str_contains($fn, 'users(')) {
@@ -35,39 +62,50 @@ try {
             break;
         }
     }
-
     if (!$found) {
-        fwrite(STDERR, "FAIL: 'users()' operation not exposed in WSDL. Found: " . implode(', ', $functions) . "\n");
-        exit(1);
+        throw new RuntimeException("Operation 'users()' not defined. Found: " . implode(', ', $functions));
     }
-    echo "✓ WSDL parsed successfully and operation 'users()' is defined\n";
-} catch (Throwable $e) {
-    fwrite(STDERR, "FAIL: WSDL parsing failed: " . $e->getMessage() . "\n");
-    exit(1);
-}
+});
 
-// 3. Test Server and Client Request Roundtrip in memory
-try {
-    require_once __DIR__ . '/../server.php';
+// 4. OOP UserService Unit Tests
+require_once __DIR__ . '/../src/UserService.php';
+use App\UserService;
 
-    if (!function_exists('users')) {
-        fwrite(STDERR, "FAIL: function users() is not defined in server.php\n");
-        exit(1);
-    }
-
-    $users = users();
+runTest("Verify App\\UserService::users() returns expected user names", function (): void {
+    $service = new UserService();
+    $users = $service->users();
     if (!is_array($users) || count($users) !== 2 || $users[0] !== 'Tolgahan' || $users[1] !== 'Acar') {
-        fwrite(STDERR, "FAIL: users() returned unexpected response\n");
-        exit(1);
+        throw new RuntimeException("Unexpected users() return value: " . json_encode($users));
     }
-    echo "✓ Direct function call users() returned expected data: " . implode(', ', $users) . "\n";
+});
 
-    // Subclass SoapClient to mock transport and execute SoapServer in-process
-    class TestSoapClient extends SoapClient {
+runTest("Verify App\\UserService::getUsers() backward-compatible alias", function (): void {
+    $service = new UserService();
+    $users = $service->getUsers();
+    if ($users !== ['Tolgahan', 'Acar']) {
+        throw new RuntimeException("getUsers() did not match users() return value.");
+    }
+});
+
+runTest("Verify App\\UserService::getUserById() returns correct details", function (): void {
+    $service = new UserService();
+    $user1 = $service->getUserById(1);
+    if ($user1 === null || $user1['name'] !== 'Tolgahan' || $user1['role'] !== 'Administrator') {
+        throw new RuntimeException("getUserById(1) failed or returned incorrect record.");
+    }
+    $notFound = $service->getUserById(999);
+    if ($notFound !== null) {
+        throw new RuntimeException("getUserById(999) should return null for nonexistent ID.");
+    }
+});
+
+// 5. In-Memory SOAP Client <-> Server Roundtrip Integration Test
+runTest("Execute in-memory SOAP Client to Server roundtrip", function () use ($wsdlPath): void {
+    class InProcessSoapClient extends SoapClient {
         public function __doRequest(string $request, string $location, string $action, int $version, bool $oneWay = false, ?string $uriParserClass = null): ?string {
             $wsdlPath = __DIR__ . '/../api/users.wsdl';
             $server = new SoapServer($wsdlPath, ['cache_wsdl' => WSDL_CACHE_NONE]);
-            $server->addFunction(['users', 'getUsers']);
+            $server->setClass(UserService::class);
 
             ob_start();
             $server->handle($request);
@@ -75,22 +113,37 @@ try {
         }
     }
 
-    $mockClient = new TestSoapClient($wsdlPath, [
+    $client = new InProcessSoapClient($wsdlPath, [
         'cache_wsdl' => WSDL_CACHE_NONE,
         'exceptions' => true,
+        'trace'      => 1,
     ]);
 
-    $response = $mockClient->users();
-    if (!is_array($response) || count($response) !== 2 || $response[0] !== 'Tolgahan' || $response[1] !== 'Acar') {
-        fwrite(STDERR, "FAIL: Mock SOAP roundtrip returned unexpected data: " . print_r($response, true) . "\n");
-        exit(1);
+    $result = $client->users();
+    if (!is_array($result) || $result !== ['Tolgahan', 'Acar']) {
+        throw new RuntimeException("SOAP call to users() returned invalid result: " . print_r($result, true));
     }
-    echo "✓ In-memory SOAP Client -> Server roundtrip succeeded\n";
 
-} catch (Throwable $e) {
-    fwrite(STDERR, "FAIL: SOAP roundtrip execution failed: " . $e->getMessage() . "\n");
+    $lastReq = $client->__getLastRequest();
+    $lastResp = $client->__getLastResponse();
+
+    if (!str_contains($lastReq, '<ns1:users') && !str_contains($lastReq, ':users')) {
+        throw new RuntimeException("SOAP Request XML does not contain users operation call.");
+    }
+    if (!str_contains($lastResp, 'usersResponse') || !str_contains($lastResp, 'Tolgahan')) {
+        throw new RuntimeException("SOAP Response XML does not contain usersResponse payload.");
+    }
+});
+
+// Summary
+echo "\n--------------------------------------------------------\n";
+echo "Test Execution Summary: {$testsPassed} / {$testsTotal} passed (" . round(($testsPassed / $testsTotal) * 100) . "%)\n";
+echo "--------------------------------------------------------\n";
+
+if ($testsPassed === $testsTotal) {
+    echo "Result: ALL CLI TESTS PASSED! \n\n";
+    exit(0);
+} else {
+    echo "Result: SOME TESTS FAILED! \n\n";
     exit(1);
 }
-
-echo "\nAll tests passed successfully! (100% OK)\n";
-exit(0);

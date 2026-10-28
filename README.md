@@ -1,7 +1,6 @@
 # PHP SOAP Web Service
 
-[![PHP CI](https://github.com/tolgahanacar/php-soap-ws/actions/workflows/php.yml/badge.svg)](https://github.com/tolgahanacar/php-soap-ws/actions/workflows/php.yml)
-[![PHP Version](https://img.shields.io/badge/PHP-%3E%3D8.0-blue.svg)](https://www.php.net/)
+[![PHP Version](https://img.shields.io/badge/PHP-%3E%3D8.1-blue.svg)](https://www.php.net/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 A modern, object-oriented (OOP) demonstration of a SOAP Web Service implemented using PHP's native `ext-soap` extension (`SoapServer` and `SoapClient`), featuring a valid WSDL 1.1 contract, a live XML envelope inspector, and an automated CLI test suite.

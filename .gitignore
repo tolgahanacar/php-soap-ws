@@ -1,0 +1,25 @@
+# Dependencies
+/vendor/
+composer.phar
+
+# IDEs and Editors
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+*~
+
+# Operating System Files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Testing and Coverage
+.phpunit.cache/
+.phpunit.result.cache
+coverage/
+*.log
+tmp/

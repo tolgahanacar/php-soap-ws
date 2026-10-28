@@ -76,7 +76,7 @@ try {
         $server->setClass(UserService::class);
 
         ob_start();
-        $server->handle($sampleRequestXml);
+        @$server->handle($sampleRequestXml);
         $responseXml = (string)ob_get_clean();
 
         $requestXml = $sampleRequestXml;

@@ -17,10 +17,6 @@
             "App\\": "src/"
         }
     },
-    "config": {
-        "disable-tls": true,
-        "secure-http": false
-    },
     "scripts": {
         "lint": [
             "php -l server.php",

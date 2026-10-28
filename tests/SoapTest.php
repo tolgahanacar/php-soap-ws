@@ -111,7 +111,7 @@ runTest("Verify SoapServer correctly handles SOAP request payload and returns us
     $server->setClass(UserService::class);
 
     ob_start();
-    $server->handle($sampleRequestXml);
+    @$server->handle($sampleRequestXml);
     $responseXml = (string)ob_get_clean();
 
     if (!str_contains($responseXml, 'usersResponse') || !str_contains($responseXml, 'Tolgahan') || !str_contains($responseXml, 'Acar')) {

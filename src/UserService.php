@@ -89,3 +89,4 @@ class UserService
         return count(self::$users);
     }
 }
+

@@ -67,7 +67,7 @@ try {
         // Fallback: If HTTP loopback is unavailable (e.g. single-threaded built-in server or local view),
         // execute SOAP roundtrip in-memory so the demo UI always renders smoothly.
         class WebFallbackClient extends SoapClient {
-            public function __doRequest(string $request, string $location, string $action, int $version, bool $oneWay = false, ?string $uriParserClass = null): ?string {
+            public function __doRequest(string $request, string $location, string $action, int $version, bool $oneWay = false, ...$extraArgs): ?string {
                 $server = new SoapServer(__DIR__ . '/api/users.wsdl', ['cache_wsdl' => WSDL_CACHE_NONE]);
                 $server->setClass(UserService::class);
                 ob_start();

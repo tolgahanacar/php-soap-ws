@@ -102,7 +102,7 @@ runTest("Verify App\\UserService::getUserById() returns correct details", functi
 // 5. In-Memory SOAP Client <-> Server Roundtrip Integration Test
 runTest("Execute in-memory SOAP Client to Server roundtrip", function () use ($wsdlPath): void {
     class InProcessSoapClient extends SoapClient {
-        public function __doRequest(string $request, string $location, string $action, int $version, bool $oneWay = false, ?string $uriParserClass = null): ?string {
+        public function __doRequest(string $request, string $location, string $action, int $version, bool $oneWay = false, ...$extraArgs): ?string {
             $wsdlPath = __DIR__ . '/../api/users.wsdl';
             $server = new SoapServer($wsdlPath, ['cache_wsdl' => WSDL_CACHE_NONE]);
             $server->setClass(UserService::class);
